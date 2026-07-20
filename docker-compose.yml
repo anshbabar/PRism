@@ -1,0 +1,22 @@
+services:
+  db:
+    # Postgres 16 with the pgvector extension preinstalled (used for regression
+    # retrieval from a later milestone; available now for local dev).
+    image: pgvector/pgvector:pg16
+    container_name: prism-db
+    environment:
+      POSTGRES_USER: prism
+      POSTGRES_PASSWORD: prism
+      POSTGRES_DB: prism
+    ports:
+      - "5432:5432"
+    volumes:
+      - prism_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prism -d prism"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  prism_pgdata:

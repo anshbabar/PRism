@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Node (frontend has its own .gitignore too)
+web/node_modules/
+web/.next/
+
+# OS / editor
+.DS_Store
+*.swp
