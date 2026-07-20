@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 103,
+  "title": "Bump uvicorn to >=0.32",
+  "author": "anshbabar",
+  "base_sha": "eeee111",
+  "head_sha": "ffff222",
+  "description": "Routine dependency bump.",
+  "url": "https://github.com/anshbabar/PRism/pull/103"
+}

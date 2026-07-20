@@ -1,0 +1,17 @@
+diff --git a/.env.example b/.env.example
+index aaaaaa1..aaaaaa2 100644
+--- a/.env.example
++++ b/.env.example
+@@ -3,3 +3,4 @@ ENVIRONMENT=local
+ LOG_LEVEL=info
++LOG_FORMAT=json
+diff --git a/config/logging.yaml b/config/logging.yaml
+new file mode 100644
+index 0000000..bbbbbb1
+--- /dev/null
++++ b/config/logging.yaml
+@@ -0,0 +1,4 @@
++version: 1
++formatters:
++  json:
++    class: pythonjsonlogger.jsonlogger.JsonFormatter

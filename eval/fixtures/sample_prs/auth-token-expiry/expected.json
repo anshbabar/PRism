@@ -1,0 +1,5 @@
+{
+  "expected_categories": ["auth"],
+  "risk_band": "medium",
+  "notes": "Auth/token logic changed; a unit test is included, so no missing-tests signal."
+}

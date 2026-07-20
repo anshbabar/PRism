@@ -1,0 +1,5 @@
+{
+  "expected_categories": ["large_diff", "missing_tests"],
+  "risk_band": "medium",
+  "notes": "Wide refactor across 8 modules with no tests touched."
+}

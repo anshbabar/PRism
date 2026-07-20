@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 102,
+  "title": "Add orders table and Order model",
+  "author": "anshbabar",
+  "base_sha": "cccc111",
+  "head_sha": "dddd222",
+  "description": "New migration creating the orders table plus the SQLAlchemy Order model. No tests added.",
+  "url": "https://github.com/anshbabar/PRism/pull/102"
+}

@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 104,
+  "title": "Remove legacy util tests",
+  "author": "anshbabar",
+  "base_sha": "1a1a111",
+  "head_sha": "2b2b222",
+  "description": "Delete an obsolete test module for a helper that no longer exists.",
+  "url": "https://github.com/anshbabar/PRism/pull/104"
+}

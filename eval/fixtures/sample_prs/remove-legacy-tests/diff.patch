@@ -1,0 +1,11 @@
+diff --git a/tests/test_legacy_utils.py b/tests/test_legacy_utils.py
+deleted file mode 100644
+index 9999999..0000000
+--- a/tests/test_legacy_utils.py
++++ /dev/null
+@@ -1,6 +0,0 @@
+-from app.utils.legacy import old_helper
+-
+-
+-def test_old_helper_returns_one():
+-    assert old_helper() == 1

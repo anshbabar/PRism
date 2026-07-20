@@ -1,0 +1,27 @@
+diff --git a/migrations/0003_add_orders.sql b/migrations/0003_add_orders.sql
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/migrations/0003_add_orders.sql
+@@ -0,0 +1,9 @@
++CREATE TABLE orders (
++    id UUID PRIMARY KEY,
++    customer_id UUID NOT NULL,
++    total_cents INTEGER NOT NULL,
++    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
++);
++
++CREATE INDEX idx_orders_customer ON orders (customer_id);
+diff --git a/app/db/models.py b/app/db/models.py
+index 5555555..6666666 100644
+--- a/app/db/models.py
++++ b/app/db/models.py
+@@ -20,3 +20,10 @@ class Customer(Base):
+     name = Column(String, nullable=False)
++
++
++class Order(Base):
++    __tablename__ = "orders"
++    id = Column(UUID, primary_key=True)
++    customer_id = Column(UUID, nullable=False)
++    total_cents = Column(Integer, nullable=False)

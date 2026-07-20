@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 101,
+  "title": "Set access-token expiry from config and add iat claim",
+  "author": "anshbabar",
+  "base_sha": "aaaa111",
+  "head_sha": "bbbb222",
+  "description": "Use ACCESS_TTL_SECONDS instead of a hardcoded TTL, and add an issued-at claim. Includes a unit test.",
+  "url": "https://github.com/anshbabar/PRism/pull/101"
+}

@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 106,
+  "title": "Add orders API endpoints",
+  "author": "anshbabar",
+  "base_sha": "5e5e111",
+  "head_sha": "6f6f222",
+  "description": "New router exposing list/get orders endpoints. No tests yet.",
+  "url": "https://github.com/anshbabar/PRism/pull/106"
+}
