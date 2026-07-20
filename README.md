@@ -8,10 +8,10 @@ score, top concerns, suggested regression tests, likely regression areas), store
 every analysis, and surfaces similar historical PRs. See
 [`docs/technical-design.md`](docs/technical-design.md) for the full design.
 
-> **Status: Milestone 1 — project skeleton.** Backend (FastAPI health check +
-> config + structured logging), frontend (Next.js landing + dashboard placeholder),
-> database config, tests, and dev tooling are in place. The analysis pipeline lands
-> in later milestones.
+> **Status: Milestone 2 — diff parsing + rule-based risk.** On top of the M1
+> skeleton, PRism can now ingest a local PR fixture, parse its diff, and produce a
+> deterministic risk assessment via `POST /api/analyze/local-fixture`. The LLM
+> review, persistence, and retrieval land in later milestones.
 
 ---
 
@@ -83,13 +83,66 @@ Run `make help` for the full list. The common ones:
 
 ---
 
+## Local fixture analysis (Milestone 2)
+
+PRism can analyze saved PR fixtures with no GitHub App and no network — the
+offline demo path. Fixtures live in `eval/fixtures/sample_prs/<name>/`, each with
+`metadata.json`, `diff.patch`, and `expected.json`.
+
+**Available fixtures:** `auth-token-expiry`, `add-orders-table`,
+`bump-dependencies`, `remove-legacy-tests`, `update-env-config`,
+`add-orders-api-endpoint`, `large-refactor-logging`.
+
+Start the API, then call the endpoint with a fixture name:
+
+```bash
+make dev   # http://localhost:8000
+
+curl -s -X POST http://localhost:8000/api/analyze/local-fixture \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "add-orders-table"}' | python3 -m json.tool
+```
+
+The response contains the **parsed diff** (files, hunks, changed line ranges,
+add/delete counts, extension, `is_test`) and a **risk result**:
+
+```jsonc
+{
+  "name": "add-orders-table",
+  "metadata": { "...": "..." },
+  "parsed_diff": { "files_changed": 2, "total_additions": 15, "files": [ ... ] },
+  "risk": {
+    "score": 4,
+    "band": "high",
+    "signals": [
+      { "category": "db_schema", "severity": 3, "file_path": "migrations/0003_add_orders.sql", "detail": "..." },
+      { "category": "missing_tests", "severity": 2, "file_path": null, "detail": "..." }
+    ],
+    "rationale": "Risk 4/5 (high). Signals: db_schema, missing_tests."
+  }
+}
+```
+
+**Risk categories** (deterministic, no LLM): `auth`, `db_schema`, `api_route`,
+`dependency`, `config_env`, `missing_tests`, `large_diff`, `test_removed`.
+Invalid fixture names return 400; unknown names return 404.
+
+Interactive docs for the endpoint: `http://localhost:8000/docs`.
+
+---
+
 ## Layout
 
 ```
-app/            FastAPI backend (api/, core/)
+app/            FastAPI backend
+  api/          routes (health, analyze)
+  core/         config + structured logging
+  diff/         unified-diff parser + rule-based risk heuristics
+  ingest/       local PR fixture loader
 tests/          Backend tests (pytest)
 web/            Next.js + TypeScript frontend (app/, lib/)
 docs/           Technical design document
+eval/fixtures/  Sample PR fixtures (sample_prs/)
 .github/        CI workflow
 docker-compose.yml   Postgres 16 + pgvector
 ```
