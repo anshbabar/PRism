@@ -34,8 +34,8 @@ class Settings(BaseSettings):
     # --- Database (used from later milestones; declared now so config is stable) ---
     database_url: str = "postgresql+psycopg://prism:prism@localhost:5432/prism"
 
-    # --- LLM (used from later milestones) ---
-    llm_provider: Literal["stub", "anthropic"] = "stub"
+    # --- LLM ---
+    llm_provider: Literal["mock", "anthropic"] = "mock"
     llm_model: str = "claude-opus-4-8"
     llm_max_tokens: int = 4096
     anthropic_api_key: str | None = None
