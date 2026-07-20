@@ -74,12 +74,12 @@ Explicitly out of scope for the MVP. Listing these is a scoping discipline, not 
 ## 4. Backend Architecture
 
 ### 4.1 Stack
-- **Language:** Python 3.11+ (per CLAUDE.md module layout; 3.11 for `match`/typing niceties).
+- **Language:** Python 3.11+ (developed on 3.12; `requires-python = ">=3.11"`).
 - **Framework:** FastAPI (async, OpenAPI for free, Pydantic v2 for validation).
 - **DB:** PostgreSQL 16 + `pgvector` extension.
 - **ORM/migrations:** SQLAlchemy 2.0 + Alembic.
 - **LLM:** Claude via the official `anthropic` Python SDK. Default model `claude-opus-4-8`; `claude-haiku-4-5` as a cheap option for embeddings-adjacent/eval-smoke work. Model id is config-driven, never hardcoded in logic.
-- **Package management:** Poetry.
+- **Package management:** PEP 621 `pyproject.toml` installed with `pip` (Poetry 2.x compatible; no Poetry required).
 - **Testing:** pytest + pytest-asyncio; `respx`/`httpx` mocking for external calls.
 - **Lint/format/types:** ruff (lint+format) + mypy.
 
@@ -536,7 +536,7 @@ No tests against the live LLM in CI (non-deterministic, needs a key, costs money
 Each milestone is independently demoable and ends with green tests + a clean commit (per CLAUDE.md "Definition of Done"). Roughly ordered for a solo engineer; ~M0–M8.
 
 ### M0 — Scaffolding
-- Poetry project, `app/` skeleton, `core/config.py` (+ `.env.example`), `core/logging.py`, ruff + mypy config, `Makefile` (`run`, `test`, `lint`, `typecheck`, `eval`), pytest bootstrap.
+- PEP 621 `pyproject.toml` (pip-installable), `app/` skeleton, `core/config.py` (+ `.env.example`), `core/logging.py`, ruff + mypy config, `Makefile` (`dev`, `test`, `lint`, `typecheck`, `eval`), pytest bootstrap, Next.js frontend skeleton, `docker-compose.yml`, and CI.
 - **Done when:** `make lint typecheck test` runs (even with near-empty suites); FastAPI serves `/health`.
 
 ### M1 — Diff parsing (F2)
