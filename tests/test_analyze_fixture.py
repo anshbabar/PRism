@@ -19,6 +19,26 @@ def test_analyze_valid_fixture_shape(client: TestClient) -> None:
     assert body["risk"]["band"] in {"low", "medium", "high"}
 
 
+def test_analyze_includes_ai_review(client: TestClient) -> None:
+    body = client.post(ENDPOINT, json={"name": "auth-token-expiry"}).json()
+    ai = body["ai"]
+    assert ai["status"] == "completed"  # mock provider by default
+    assert ai["provider"] == "mock"
+    review = ai["review"]
+    for field in (
+        "summary",
+        "risk_score",
+        "risk_categories",
+        "top_concerns",
+        "suggested_tests",
+        "regression_risks",
+        "github_review_markdown",
+    ):
+        assert field in review
+    assert 1 <= review["risk_score"] <= 5
+    assert len(review["top_concerns"]) <= 5
+
+
 def test_invalid_fixture_name_returns_400(client: TestClient) -> None:
     resp = client.post(ENDPOINT, json={"name": "../etc/passwd"})
     assert resp.status_code == 400
