@@ -10,7 +10,7 @@ def test_defaults_are_sane() -> None:
     settings = Settings()
     assert settings.app_name == "PRism"
     assert settings.environment in {"local", "ci", "production"}
-    assert settings.llm_provider == "stub"  # offline by default
+    assert settings.llm_provider == "mock"  # offline by default
     assert settings.post_reviews is False  # never post to GitHub by default
 
 
