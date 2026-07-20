@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 105,
+  "title": "Add LOG_FORMAT and logging config",
+  "author": "anshbabar",
+  "base_sha": "3c3c111",
+  "head_sha": "4d4d222",
+  "description": "Document a LOG_FORMAT env var and add a logging YAML config. No code changes.",
+  "url": "https://github.com/anshbabar/PRism/pull/105"
+}

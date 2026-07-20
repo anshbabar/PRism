@@ -1,0 +1,10 @@
+{
+  "repo": "anshbabar/PRism",
+  "number": 107,
+  "title": "Switch modules to the shared get_logger helper",
+  "author": "anshbabar",
+  "base_sha": "7a7a111",
+  "head_sha": "8b8b222",
+  "description": "Replace direct logging.getLogger usage with the shared get_logger helper across services, utils, and domain modules. No tests added.",
+  "url": "https://github.com/anshbabar/PRism/pull/107"
+}

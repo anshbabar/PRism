@@ -1,0 +1,5 @@
+{
+  "expected_categories": ["dependency"],
+  "risk_band": "low",
+  "notes": "Dependency manifest only; not application code, so no missing-tests signal."
+}

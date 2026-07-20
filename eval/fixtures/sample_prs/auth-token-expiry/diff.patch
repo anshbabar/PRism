@@ -1,0 +1,22 @@
+diff --git a/app/auth/tokens.py b/app/auth/tokens.py
+index 1111111..2222222 100644
+--- a/app/auth/tokens.py
++++ b/app/auth/tokens.py
+@@ -8,7 +8,9 @@ def issue_token(user_id: str) -> str:
+     payload = {"sub": user_id}
+-    payload["exp"] = _now() + 3600
++    payload["exp"] = _now() + ACCESS_TTL_SECONDS
++    payload["iat"] = _now()
+     return _encode(payload)
+diff --git a/tests/auth/test_tokens.py b/tests/auth/test_tokens.py
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/tests/auth/test_tokens.py
+@@ -0,0 +1,7 @@
++from app.auth.tokens import issue_token
++
++
++def test_issue_token_has_expiry():
++    token = issue_token("u1")
++    assert token

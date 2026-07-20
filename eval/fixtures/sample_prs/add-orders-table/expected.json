@@ -1,0 +1,5 @@
+{
+  "expected_categories": ["db_schema", "missing_tests"],
+  "risk_band": "high",
+  "notes": "Schema migration + model change with no accompanying tests."
+}

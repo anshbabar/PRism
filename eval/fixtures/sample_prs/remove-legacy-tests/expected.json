@@ -1,0 +1,5 @@
+{
+  "expected_categories": ["test_removed"],
+  "risk_band": "medium",
+  "notes": "A test file is deleted with no source change, so this is test-removal, not missing-tests."
+}

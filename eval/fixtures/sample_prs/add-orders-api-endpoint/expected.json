@@ -1,0 +1,5 @@
+{
+  "expected_categories": ["api_route", "missing_tests"],
+  "risk_band": "medium",
+  "notes": "New API route with no accompanying tests."
+}
