@@ -8,10 +8,13 @@ score, top concerns, suggested regression tests, likely regression areas), store
 every analysis, and surfaces similar historical PRs. See
 [`docs/technical-design.md`](docs/technical-design.md) for the full design.
 
-> **Status: Milestone 2 — diff parsing + rule-based risk.** On top of the M1
-> skeleton, PRism can now ingest a local PR fixture, parse its diff, and produce a
-> deterministic risk assessment via `POST /api/analyze/local-fixture`. The LLM
-> review, persistence, and retrieval land in later milestones.
+> **Status: Milestone 3 — AI review generation.** On top of diff parsing and
+> rule-based risk, `POST /api/analyze/local-fixture` now also returns a
+> schema-validated AI review (summary, risk score, concerns, suggested tests,
+> regression risks, and a GitHub-ready markdown comment). A **mock provider** runs
+> offline by default; set `LLM_PROVIDER=anthropic` (+ `ANTHROPIC_API_KEY`) for the
+> real Claude provider. Invalid model output falls back to a heuristic review.
+> Persistence and retrieval land in later milestones.
 
 ---
 
@@ -127,6 +130,32 @@ add/delete counts, extension, `is_test`) and a **risk result**:
 `dependency`, `config_env`, `missing_tests`, `large_diff`, `test_removed`.
 Invalid fixture names return 400; unknown names return 404.
 
+The response also includes an `ai` object with a schema-validated review:
+
+```jsonc
+"ai": {
+  "status": "completed",          // or "fallback" if model output was invalid
+  "provider": "mock",             // "anthropic" when LLM_PROVIDER=anthropic
+  "model": "mock",
+  "review": {
+    "summary": "...",
+    "risk_score": 4,              // clamped to the heuristic score +/- 1
+    "risk_categories": ["db_schema", "missing_tests"],
+    "top_concerns": [ { "title": "...", "detail": "..." } ],   // <= 5
+    "suggested_tests": [ { "area": "...", "reason": "..." } ],
+    "regression_risks": ["..."],
+    "github_review_markdown": "### PRism review ..."
+  }
+}
+```
+
+**AI provider.** `LLM_PROVIDER=mock` (default) is deterministic and offline — no
+key needed, used in tests/CI. `LLM_PROVIDER=anthropic` calls Claude via the
+`anthropic` SDK using structured outputs; set `ANTHROPIC_API_KEY` and (optionally)
+`LLM_MODEL`. All PR content is treated as untrusted input: the prompt defends
+against injection, output is schema-validated, and the risk score is clamped to
+the deterministic heuristic score so a malicious diff can't force it.
+
 Interactive docs for the endpoint: `http://localhost:8000/docs`.
 
 ---
@@ -138,6 +167,7 @@ app/            FastAPI backend
   api/          routes (health, analyze)
   core/         config + structured logging
   diff/         unified-diff parser + rule-based risk heuristics
+  ai/           LLM provider abstraction, review schema, prompts, fallback
   ingest/       local PR fixture loader
 tests/          Backend tests (pytest)
 web/            Next.js + TypeScript frontend (app/, lib/)
