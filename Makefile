@@ -47,8 +47,8 @@ typecheck: ## Type-check backend (mypy) and frontend (tsc)
 	$(MYPY)
 	cd web && npm run typecheck
 
-eval: ## Run the evaluation harness (stub until Milestone 6)
-	@echo "eval: benchmark harness lands in Milestone 6 (see docs/technical-design.md §11). No-op for now."
+eval: ## Run the evaluation harness (mock provider) and enforce smoke invariants
+	$(PY) eval/run_eval.py --check
 
 db-up: ## Start Postgres (pgvector) via docker compose
 	docker compose up -d db

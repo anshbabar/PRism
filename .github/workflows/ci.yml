@@ -32,8 +32,10 @@ jobs:
       - name: Tests (pytest)
         run: pytest
 
-      - name: Eval smoke test
+      - name: Eval smoke test (mock provider)
         run: make eval
+        env:
+          LLM_PROVIDER: mock
 
   frontend:
     name: Frontend (typecheck, lint)
