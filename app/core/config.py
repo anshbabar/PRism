@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 4096
     anthropic_api_key: str | None = None
 
+    # --- Retrieval / embeddings ---
+    embedding_provider: Literal["hash"] = "hash"
+    embed_dim: int = 256
+    similar_top_k: int = 5
+
     # --- GitHub App (used from later milestones) ---
     github_app_id: str | None = None
     github_webhook_secret: str | None = None
