@@ -1,7 +1,9 @@
 .DEFAULT_GOAL := help
 
 VENV := .venv
-PY := $(VENV)/bin/python
+# Prefer the local virtualenv; fall back to PATH python (e.g. CI installs deps
+# into the runner's Python without creating a .venv).
+PY := $(if $(wildcard $(VENV)/bin/python),$(VENV)/bin/python,python)
 PIP := $(VENV)/bin/pip
 RUFF := $(VENV)/bin/ruff
 MYPY := $(VENV)/bin/mypy
