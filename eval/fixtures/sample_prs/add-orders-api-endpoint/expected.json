@@ -1,5 +1,9 @@
 {
   "expected_categories": ["api_route", "missing_tests"],
   "risk_band": "medium",
+  "expected_test_areas": [
+    "api endpoint request and response contracts",
+    "tests for the changed orders code"
+  ],
   "notes": "New API route with no accompanying tests."
 }

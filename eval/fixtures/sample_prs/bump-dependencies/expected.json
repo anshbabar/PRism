@@ -1,5 +1,8 @@
 {
   "expected_categories": ["dependency"],
   "risk_band": "low",
+  "expected_test_areas": [
+    "post-upgrade smoke tests"
+  ],
   "notes": "Dependency manifest only; not application code, so no missing-tests signal."
 }

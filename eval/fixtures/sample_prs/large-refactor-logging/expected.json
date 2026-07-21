@@ -1,5 +1,9 @@
 {
   "expected_categories": ["large_diff", "missing_tests"],
   "risk_band": "medium",
+  "expected_test_areas": [
+    "regression tests across the touched modules",
+    "logging output format"
+  ],
   "notes": "Wide refactor across 8 modules with no tests touched."
 }

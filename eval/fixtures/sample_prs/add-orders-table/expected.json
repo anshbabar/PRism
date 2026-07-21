@@ -1,5 +1,9 @@
 {
   "expected_categories": ["db_schema", "missing_tests"],
   "risk_band": "high",
+  "expected_test_areas": [
+    "database migration up and down",
+    "data integrity for the new schema"
+  ],
   "notes": "Schema migration + model change with no accompanying tests."
 }
