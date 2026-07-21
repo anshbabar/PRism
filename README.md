@@ -8,15 +8,14 @@ score, top concerns, suggested regression tests, likely regression areas), store
 every analysis, and surfaces similar historical PRs. See
 [`docs/technical-design.md`](docs/technical-design.md) for the full design.
 
-> **Status: Milestone 5 — persistence + regression retrieval.** Every analysis is
-> now stored in **Postgres** (SQLAlchemy 2.0 + Alembic), embedded, and used to
-> surface **similar prior PRs** in the same repository via cosine similarity.
-> `POST /api/analyze/local-fixture` returns a `persisted` flag, the `analysis_id`,
-> and a `similar` list. Persistence degrades gracefully — if the database is
-> unreachable the analysis is still returned (`persisted: false`, `similar: []`),
-> so the offline pipeline keeps working. Earlier milestones added diff parsing,
-> rule-based risk, schema-validated AI review (mock provider offline by default),
-> and a reproducible evaluation harness (`make eval`).
+> **Status: Milestone 6 — dashboard UI.** A clean Next.js dashboard reads the
+> backend over new read endpoints (`GET /api/analyses`, `/api/analyses/{id}`,
+> `/api/eval/latest`): a list of analyzed PRs, a per-PR detail page (risk score
+> card, AI summary, top concerns, suggested tests, changed files, and similar
+> historical PRs), and an evaluation-metrics page — all with loading and error
+> states. Earlier milestones added diff parsing, rule-based risk, schema-validated
+> AI review (mock provider offline by default), a reproducible evaluation harness
+> (`make eval`), and Postgres persistence + similar-PR retrieval (`make seed`).
 
 ---
 
@@ -85,7 +84,42 @@ Run `make help` for the full list. The common ones:
 | `make eval`    | Run the evaluation harness (mock provider) + write `eval/results/latest.json` |
 | `make db-up` / `make db-down` | Start / stop the Postgres container |
 | `make migrate` | Apply database migrations (`alembic upgrade head`) |
+| `make seed`    | Populate the database by analyzing every fixture |
 | `make fmt`     | Auto-format backend code |
+
+---
+
+## Dashboard (Milestone 6)
+
+A Next.js dashboard reads persisted analyses from the backend. Bring up the full
+stack, seed some data, then run both servers:
+
+```bash
+make db-up && make migrate && make seed   # Postgres + schema + analyzed fixtures
+make dev                                   # backend API at http://localhost:8000
+make web                                   # dashboard at http://localhost:3000
+```
+
+The dashboard talks to the API at `NEXT_PUBLIC_API_BASE_URL` (default
+`http://localhost:8000`). Three screens, each with loading + error states:
+
+**Dashboard** — every analyzed PR with a color-coded risk badge, top concern, and
+churn.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**PR detail** — risk score card, AI summary, top concerns, suggested tests,
+regression risks, changed files, and similar historical PRs (with similarity %).
+
+![PR detail](docs/screenshots/detail.png)
+
+**Evaluation metrics** — the latest `make eval` results: metric cards + a
+per-fixture breakdown.
+
+![Evaluation metrics](docs/screenshots/eval.png)
+
+Read endpoints powering the UI: `GET /api/analyses`, `GET /api/analyses/{id}`,
+`GET /api/eval/latest`.
 
 ---
 
@@ -311,17 +345,23 @@ in-memory SQLite database.
 
 ```
 app/            FastAPI backend
-  api/          routes (health, analyze)
+  api/          routes (health, analyze, analyses, eval)
   core/         config + structured logging
   diff/         unified-diff parser + rule-based risk heuristics
   ai/           LLM provider abstraction, review schema, prompts, fallback
-  db/           SQLAlchemy models, session factory, persistence, migrations/
+  db/           SQLAlchemy models, session, persistence, queries, seed, migrations/
   retrieval/    embedding providers + similarity search
   eval/         evaluation metrics (formulas) + harness runner
   ingest/       local PR fixture loader
+  pipeline.py   shared analysis pipeline (parse → risk → review → embed)
 tests/          Backend tests (pytest), incl. tests/db/, tests/retrieval/, tests/eval/
-web/            Next.js + TypeScript frontend (app/, lib/)
-docs/           Technical design document
+web/            Next.js + TypeScript dashboard
+  app/          routes: dashboard, analyses/[id], eval (+ loading/error states)
+  components/   RiskBadge, RiskScoreCard, ChangedFilesTable, SimilarPRs, …
+  lib/          typed API client, shared types, formatters
+docs/
+  technical-design.md
+  screenshots/  dashboard / detail / eval images
 eval/
   run_eval.py   evaluation harness CLI
   fixtures/     sample PR fixtures (sample_prs/)
@@ -339,7 +379,7 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on
 every push and PR:
 
 - **Backend:** ruff lint + format check, mypy, pytest, and an eval smoke test.
-- **Frontend:** `tsc --noEmit` type-check and ESLint.
+- **Frontend:** `tsc --noEmit` type-check, ESLint, and Vitest component tests.
 
 ---
 
