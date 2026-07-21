@@ -8,12 +8,14 @@ score, top concerns, suggested regression tests, likely regression areas), store
 every analysis, and surfaces similar historical PRs. See
 [`docs/technical-design.md`](docs/technical-design.md) for the full design.
 
-> **Status: Milestone 3 — AI review generation.** On top of diff parsing and
-> rule-based risk, `POST /api/analyze/local-fixture` now also returns a
-> schema-validated AI review (summary, risk score, concerns, suggested tests,
-> regression risks, and a GitHub-ready markdown comment). A **mock provider** runs
-> offline by default; set `LLM_PROVIDER=anthropic` (+ `ANTHROPIC_API_KEY`) for the
-> real Claude provider. Invalid model output falls back to a heuristic review.
+> **Status: Milestone 4 — evaluation harness.** On top of diff parsing,
+> rule-based risk, and schema-validated AI review, PRism now ships a reproducible
+> **evaluation harness**: `make eval` runs the full pipeline over every benchmark
+> fixture, computes quality metrics (valid-JSON rate, risk-score accuracy,
+> category precision/recall, test-suggestion overlap, latency), writes
+> `eval/results/latest.json`, and prints a summary table. It runs offline with the
+> **mock provider** by default (also the CI smoke test); set
+> `LLM_PROVIDER=anthropic` (+ `ANTHROPIC_API_KEY`) for the real Claude provider.
 > Persistence and retrieval land in later milestones.
 
 ---
@@ -80,7 +82,7 @@ Run `make help` for the full list. The common ones:
 | `make test`    | Run backend tests (pytest) |
 | `make lint`    | Lint backend (ruff) and frontend (eslint) |
 | `make typecheck` | Type-check backend (mypy) and frontend (tsc) |
-| `make eval`    | Run the eval harness (stub until Milestone 6) |
+| `make eval`    | Run the evaluation harness (mock provider) + write `eval/results/latest.json` |
 | `make db-up` / `make db-down` | Start / stop the Postgres container |
 | `make fmt`     | Auto-format backend code |
 
@@ -160,6 +162,73 @@ Interactive docs for the endpoint: `http://localhost:8000/docs`.
 
 ---
 
+## Evaluation harness (Milestone 4)
+
+PRism is *measured*, not vibes. The harness runs the full analysis pipeline
+(`parse → risk → AI review`) over every fixture in `eval/fixtures/sample_prs/`,
+compares the output against each fixture's `expected.json`, and reports quality
+metrics.
+
+```bash
+make eval                                  # mock provider + invariant checks (what CI runs)
+./.venv/bin/python eval/run_eval.py        # same, without the smoke-test gate
+./.venv/bin/python eval/run_eval.py --provider anthropic   # score the live Claude provider
+```
+
+Each run writes **`eval/results/latest.json`** (aggregate metrics + a per-fixture
+breakdown) and prints a summary table. The reusable logic lives in `app/eval/`
+(`metrics.py` = pure formulas, `runner.py` = orchestration); `eval/run_eval.py`
+is a thin CLI wrapper.
+
+**Ground truth.** Each fixture's `expected.json` carries `expected_categories`
+(the risk categories that should fire), `risk_band` (`low`/`medium`/`high`), and
+`expected_test_areas` (test topics a reviewer would want).
+
+### What each metric means
+
+| Metric | Meaning | Formula |
+|---|---|---|
+| `valid_json_rate` | How often the **primary** provider produced schema-valid output (heuristic fallbacks excluded). | `#{completed} / #fixtures` |
+| `risk_score_accuracy_within_1` | Whether the final (clamped) risk score lands within 1 of the expected band. | band → canonical score (`low=2, medium=3, high=4`); pass if `abs(predicted − canonical) ≤ 1` |
+| `risk_category_precision` | Of the categories the review flagged, how many were expected (micro-averaged). | `TP / (TP + FP)` |
+| `risk_category_recall` | Of the expected categories, how many the review flagged (micro-averaged). | `TP / (TP + FN)` |
+| `suggested_test_overlap` | How well suggested test areas cover the expected ones. | per expected area, best token-Jaccard vs any suggestion; averaged |
+| `average_latency_ms` | Mean per-fixture pipeline wall-time. | `mean(latency_ms)` |
+
+`suggested_test_overlap` tokenizes each area (lowercase `[a-z0-9]+`, minus a small
+stopword set and 1-char tokens) and uses Jaccard similarity `|A∩B| / |A∪B|`.
+
+### Current benchmark results
+
+Seven fixtures, **mock provider** (offline, deterministic — the CI-tested path):
+
+| Metric | Result |
+|---|---|
+| `valid_json_rate` | **1.00** |
+| `risk_score_accuracy_within_1` | **1.00** |
+| `risk_category_precision` | **1.00** |
+| `risk_category_recall` | **1.00** |
+| `suggested_test_overlap` | **0.54** |
+| `average_latency_ms` | **< 1 ms** (deterministic-only; machine-dependent) |
+
+Notes on interpreting these:
+
+- Precision/recall of **1.00** is expected and honest: the fixtures'
+  `expected_categories` are authored against the deterministic detector contract,
+  so this confirms the detector matches its spec across the set (the
+  `test_fixture_matches_expected` test enforces the same equality).
+- `suggested_test_overlap` is intentionally a **soft** metric at **~0.54**: the
+  offline mock suggests one generic area per category, so it partially — not
+  fully — covers the specific expected areas. A live LLM (`--provider anthropic`)
+  is expected to score higher; this is the metric that most rewards the real model.
+
+The committed `eval/results/latest.json` lets a reviewer see the numbers without
+running anything. `make eval` also enforces smoke-test invariants (≥ 5 fixtures,
+and `valid_json_rate == 1.0` under the mock provider) and exits non-zero on
+regression — this is the CI eval gate.
+
+---
+
 ## Layout
 
 ```
@@ -168,11 +237,15 @@ app/            FastAPI backend
   core/         config + structured logging
   diff/         unified-diff parser + rule-based risk heuristics
   ai/           LLM provider abstraction, review schema, prompts, fallback
+  eval/         evaluation metrics (formulas) + harness runner
   ingest/       local PR fixture loader
-tests/          Backend tests (pytest)
+tests/          Backend tests (pytest), incl. tests/eval/
 web/            Next.js + TypeScript frontend (app/, lib/)
 docs/           Technical design document
-eval/fixtures/  Sample PR fixtures (sample_prs/)
+eval/
+  run_eval.py   evaluation harness CLI
+  fixtures/     sample PR fixtures (sample_prs/)
+  results/      latest.json (committed benchmark output)
 .github/        CI workflow
 docker-compose.yml   Postgres 16 + pgvector
 ```
