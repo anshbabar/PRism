@@ -3,17 +3,28 @@
 Milestone 2 parses a saved fixture's diff and runs deterministic risk heuristics.
 Milestone 3 adds a schema-validated AI review (mock provider by default; real
 provider via ``LLM_PROVIDER=anthropic``) with a safe heuristic fallback.
-Persistence lands in a later milestone.
+Milestone 5 persists each analysis to the database, embeds it, and returns
+similar prior PRs. Persistence degrades gracefully: if the database is
+unreachable the analysis is still returned (``persisted=false``, ``similar=[]``),
+so the offline pipeline keeps working.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import uuid
+from time import perf_counter
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.ai.reviewer import ReviewOutcome, build_review_input, generate_ai_review
+from app.core.config import get_settings
+from app.core.logging import get_logger
+from app.db.repository import persist_analysis
+from app.db.session import get_session
 from app.diff.models import ParsedDiff
 from app.diff.parser import parse_diff
 from app.diff.risk import RiskResult, assess_risk
@@ -22,6 +33,10 @@ from app.ingest.fixtures import (
     InvalidFixtureName,
     load_fixture,
 )
+from app.retrieval.embeddings import get_embedding_provider
+from app.retrieval.store import SimilarPR, build_embedding_text, find_similar
+
+logger = get_logger("app.api.analyze")
 
 router = APIRouter(prefix="/api/analyze", tags=["analyze"])
 
@@ -36,11 +51,17 @@ class LocalFixtureResponse(BaseModel):
     parsed_diff: ParsedDiff
     risk: RiskResult
     ai: ReviewOutcome
+    persisted: bool
+    analysis_id: uuid.UUID | None
+    similar: list[SimilarPR]
 
 
 @router.post("/local-fixture", response_model=LocalFixtureResponse)
-def analyze_local_fixture(req: LocalFixtureRequest) -> LocalFixtureResponse:
-    """Parse + risk-assess + AI-review a local PR fixture by name."""
+def analyze_local_fixture(
+    req: LocalFixtureRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> LocalFixtureResponse:
+    """Parse + risk-assess + AI-review a fixture, persist it, and find similar PRs."""
     try:
         fixture = load_fixture(req.name)
     except InvalidFixtureName as exc:
@@ -48,11 +69,51 @@ def analyze_local_fixture(req: LocalFixtureRequest) -> LocalFixtureResponse:
     except FixtureNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    settings = get_settings()
+
+    start = perf_counter()
     parsed = parse_diff(fixture.diff_text)
     risk = assess_risk(parsed, raw_text=fixture.diff_text)
-
     review_input = build_review_input(fixture.metadata, parsed, risk, fixture.diff_text)
-    ai = generate_ai_review(review_input)
+    ai = generate_ai_review(review_input, settings=settings)
+    latency_ms = int((perf_counter() - start) * 1000)
+
+    embedder = get_embedding_provider(settings)
+    doc = build_embedding_text(fixture.metadata, ai.review)
+    vector = embedder.embed([doc])[0]
+
+    persisted = False
+    analysis_id: uuid.UUID | None = None
+    similar: list[SimilarPR] = []
+    try:
+        result = persist_analysis(
+            session,
+            metadata=fixture.metadata,
+            parsed=parsed,
+            risk=risk,
+            review_outcome=ai,
+            vector=vector,
+            embedding_provider_name=embedder.name,
+            embedding_model=embedder.model,
+            latency_ms=latency_ms,
+        )
+        analysis_id = result.analysis_id
+        similar = find_similar(
+            session,
+            analysis_id=result.analysis_id,
+            repository_id=result.repository_id,
+            query_vector=vector,
+            k=settings.similar_top_k,
+        )
+        persisted = True
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.warning(
+            "persistence unavailable; returning unsaved analysis",
+            extra={
+                "error": str(exc),
+            },
+        )
 
     return LocalFixtureResponse(
         name=fixture.name,
@@ -60,4 +121,7 @@ def analyze_local_fixture(req: LocalFixtureRequest) -> LocalFixtureResponse:
         parsed_diff=parsed,
         risk=risk,
         ai=ai,
+        persisted=persisted,
+        analysis_id=analysis_id,
+        similar=similar,
     )
