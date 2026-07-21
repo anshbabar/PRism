@@ -12,7 +12,6 @@ so the offline pipeline keeps working.
 from __future__ import annotations
 
 import uuid
-from time import perf_counter
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,21 +19,20 @@ from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.ai.reviewer import ReviewOutcome, build_review_input, generate_ai_review
+from app.ai.reviewer import ReviewOutcome
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.repository import persist_analysis
 from app.db.session import get_session
 from app.diff.models import ParsedDiff
-from app.diff.parser import parse_diff
-from app.diff.risk import RiskResult, assess_risk
+from app.diff.risk import RiskResult
 from app.ingest.fixtures import (
     FixtureNotFound,
     InvalidFixtureName,
     load_fixture,
 )
-from app.retrieval.embeddings import get_embedding_provider
-from app.retrieval.store import SimilarPR, build_embedding_text, find_similar
+from app.pipeline import analyze_fixture
+from app.retrieval.store import SimilarPR, find_similar
 
 logger = get_logger("app.api.analyze")
 
@@ -70,17 +68,7 @@ def analyze_local_fixture(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     settings = get_settings()
-
-    start = perf_counter()
-    parsed = parse_diff(fixture.diff_text)
-    risk = assess_risk(parsed, raw_text=fixture.diff_text)
-    review_input = build_review_input(fixture.metadata, parsed, risk, fixture.diff_text)
-    ai = generate_ai_review(review_input, settings=settings)
-    latency_ms = int((perf_counter() - start) * 1000)
-
-    embedder = get_embedding_provider(settings)
-    doc = build_embedding_text(fixture.metadata, ai.review)
-    vector = embedder.embed([doc])[0]
+    artifacts = analyze_fixture(fixture, settings)
 
     persisted = False
     analysis_id: uuid.UUID | None = None
@@ -89,20 +77,20 @@ def analyze_local_fixture(
         result = persist_analysis(
             session,
             metadata=fixture.metadata,
-            parsed=parsed,
-            risk=risk,
-            review_outcome=ai,
-            vector=vector,
-            embedding_provider_name=embedder.name,
-            embedding_model=embedder.model,
-            latency_ms=latency_ms,
+            parsed=artifacts.parsed,
+            risk=artifacts.risk,
+            review_outcome=artifacts.review,
+            vector=artifacts.vector,
+            embedding_provider_name=artifacts.embedding_provider_name,
+            embedding_model=artifacts.embedding_model,
+            latency_ms=artifacts.latency_ms,
         )
         analysis_id = result.analysis_id
         similar = find_similar(
             session,
             analysis_id=result.analysis_id,
             repository_id=result.repository_id,
-            query_vector=vector,
+            query_vector=artifacts.vector,
             k=settings.similar_top_k,
         )
         persisted = True
@@ -110,17 +98,15 @@ def analyze_local_fixture(
         session.rollback()
         logger.warning(
             "persistence unavailable; returning unsaved analysis",
-            extra={
-                "error": str(exc),
-            },
+            extra={"error": str(exc)},
         )
 
     return LocalFixtureResponse(
         name=fixture.name,
         metadata=fixture.metadata,
-        parsed_diff=parsed,
-        risk=risk,
-        ai=ai,
+        parsed_diff=artifacts.parsed,
+        risk=artifacts.risk,
+        ai=artifacts.review,
         persisted=persisted,
         analysis_id=analysis_id,
         similar=similar,
