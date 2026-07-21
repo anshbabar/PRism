@@ -73,3 +73,211 @@ h1 {
   font-size: 2rem;
   margin: 0 0 0.5rem;
 }
+
+h2 {
+  font-size: 1.15rem;
+  margin: 2rem 0 0.75rem;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* --- Tables --- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.table tbody tr:hover {
+  background: var(--panel);
+}
+
+.table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.add {
+  color: #3fb950;
+}
+
+.del {
+  color: #f85149;
+}
+
+/* --- Risk badge --- */
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.risk-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+/* --- Risk score card --- */
+.score-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.score-figure {
+  text-align: center;
+  min-width: 6rem;
+}
+
+.score-number {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-max {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.score-band {
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.score-body {
+  flex: 1;
+}
+
+.meter {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.meter-seg {
+  height: 0.6rem;
+  flex: 1;
+  border-radius: 3px;
+}
+
+.rationale {
+  margin: 0.25rem 0;
+}
+
+/* --- Lists --- */
+.concern-list,
+.similar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.concern p,
+.similar-meta {
+  margin: 0.35rem 0 0;
+}
+
+.test-list {
+  padding-left: 1.1rem;
+  margin: 0.5rem 0;
+}
+
+.test-list li {
+  margin: 0.35rem 0;
+}
+
+.similar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.similarity {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.similar-meta {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* --- Metric grid --- */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.metric-card {
+  margin: 0;
+}
+
+.metric-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+/* --- Banner --- */
+.banner {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 1rem 0;
+}
+
+.error-card {
+  border-color: #f85149;
+}
+
+.crumb {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
