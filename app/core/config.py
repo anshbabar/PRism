@@ -45,10 +45,12 @@ class Settings(BaseSettings):
     embed_dim: int = 256
     similar_top_k: int = 5
 
-    # --- GitHub App (used from later milestones) ---
+    # --- GitHub App (Milestone 7) ---
     github_app_id: str | None = None
-    github_webhook_secret: str | None = None
-    post_reviews: bool = False
+    github_app_private_key_path: str | None = None  # PEM used to sign the App JWT
+    github_webhook_secret: str | None = None  # HMAC key for webhook signatures
+    github_api_url: str = "https://api.github.com"  # override for GitHub Enterprise
+    post_reviews: bool = False  # False = dry-run (analyze + persist, never post)
 
 
 @lru_cache
