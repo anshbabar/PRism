@@ -16,6 +16,9 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "anthropic>=0.40",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +40,8 @@ addopts = "-q"
 line-length = 100
 target-version = "py311"
 src = ["app", "tests"]
+# Alembic migrations are generated/boilerplate; don't lint them.
+extend-exclude = ["app/db/migrations"]
 
 [tool.ruff.lint]
 # pycodestyle (E), pyflakes (F), isort (I), bugbear (B), pyupgrade (UP)
@@ -48,3 +53,5 @@ packages = ["app"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 ignore_missing_imports = true
+# Alembic migrations are script-style (dynamic globals); not worth type-checking.
+exclude = ["app/db/migrations/"]
