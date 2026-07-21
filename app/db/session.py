@@ -32,3 +32,13 @@ def get_session() -> Iterator[Session]:
     factory = get_sessionmaker(get_settings().database_url)
     with factory() as session:
         yield session
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    """FastAPI dependency returning the sessionmaker itself.
+
+    Background tasks outlive the request scope, so they can't hold a
+    request-yielded ``Session``. They take the *factory* and open their own
+    session when they run. Tests override this to point at the SQLite database.
+    """
+    return get_sessionmaker(get_settings().database_url)
