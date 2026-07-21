@@ -9,7 +9,7 @@ RUFF := $(VENV)/bin/ruff
 MYPY := $(VENV)/bin/mypy
 PYTEST := $(VENV)/bin/pytest
 
-.PHONY: help venv install web-install dev web test lint fmt typecheck eval db-up db-down clean
+.PHONY: help venv install web-install dev web test lint fmt typecheck eval db-up db-down migrate clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -57,6 +57,9 @@ db-up: ## Start Postgres (pgvector) via docker compose
 
 db-down: ## Stop Postgres
 	docker compose down
+
+migrate: ## Apply database migrations (alembic upgrade head)
+	$(PY) -m alembic upgrade head
 
 clean: ## Remove caches and the virtualenv
 	rm -rf $(VENV) .pytest_cache .ruff_cache .mypy_cache **/__pycache__
