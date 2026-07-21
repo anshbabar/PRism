@@ -1,0 +1,219 @@
+{
+  "generated_at": "2026-07-21T03:55:23.978445+00:00",
+  "provider": "mock",
+  "model": "mock",
+  "prompt_version": "review/v1",
+  "fixture_count": 7,
+  "metrics": {
+    "valid_json_rate": 1.0,
+    "risk_score_accuracy_within_1": 1.0,
+    "risk_category_precision": 1.0,
+    "risk_category_recall": 1.0,
+    "suggested_test_overlap": 0.5381,
+    "average_latency_ms": 0.129
+  },
+  "fixtures": [
+    {
+      "name": "add-orders-api-endpoint",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "medium",
+      "expected_score": 3,
+      "deterministic_score": 3,
+      "predicted_score": 3,
+      "score_within_1": true,
+      "expected_categories": [
+        "api_route",
+        "missing_tests"
+      ],
+      "predicted_categories": [
+        "api_route",
+        "missing_tests"
+      ],
+      "category_tp": 2,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "api endpoint request and response contracts",
+        "tests for the changed orders code"
+      ],
+      "suggested_test_areas": [
+        "API endpoint contracts",
+        "unit tests for the changed modules"
+      ],
+      "test_overlap": 0.4667,
+      "latency_ms": 0.203
+    },
+    {
+      "name": "add-orders-table",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "high",
+      "expected_score": 4,
+      "deterministic_score": 4,
+      "predicted_score": 4,
+      "score_within_1": true,
+      "expected_categories": [
+        "db_schema",
+        "missing_tests"
+      ],
+      "predicted_categories": [
+        "db_schema",
+        "missing_tests"
+      ],
+      "category_tp": 2,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "database migration up and down",
+        "data integrity for the new schema"
+      ],
+      "suggested_test_areas": [
+        "database migration and data integrity",
+        "unit tests for the changed modules"
+      ],
+      "test_overlap": 0.3333,
+      "latency_ms": 0.106
+    },
+    {
+      "name": "auth-token-expiry",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "medium",
+      "expected_score": 3,
+      "deterministic_score": 3,
+      "predicted_score": 3,
+      "score_within_1": true,
+      "expected_categories": [
+        "auth"
+      ],
+      "predicted_categories": [
+        "auth"
+      ],
+      "category_tp": 1,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "authentication and token expiry flows",
+        "issued-at claim validation"
+      ],
+      "suggested_test_areas": [
+        "authentication and authorization flows"
+      ],
+      "test_overlap": 0.2,
+      "latency_ms": 0.1
+    },
+    {
+      "name": "bump-dependencies",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "low",
+      "expected_score": 2,
+      "deterministic_score": 2,
+      "predicted_score": 2,
+      "score_within_1": true,
+      "expected_categories": [
+        "dependency"
+      ],
+      "predicted_categories": [
+        "dependency"
+      ],
+      "category_tp": 1,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "post-upgrade smoke tests"
+      ],
+      "suggested_test_areas": [
+        "post-upgrade smoke tests"
+      ],
+      "test_overlap": 1.0,
+      "latency_ms": 0.064
+    },
+    {
+      "name": "large-refactor-logging",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "medium",
+      "expected_score": 3,
+      "deterministic_score": 3,
+      "predicted_score": 3,
+      "score_within_1": true,
+      "expected_categories": [
+        "large_diff",
+        "missing_tests"
+      ],
+      "predicted_categories": [
+        "large_diff",
+        "missing_tests"
+      ],
+      "category_tp": 2,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "regression tests across the touched modules",
+        "logging output format"
+      ],
+      "suggested_test_areas": [
+        "regression tests across touched modules",
+        "unit tests for the changed modules"
+      ],
+      "test_overlap": 0.5,
+      "latency_ms": 0.301
+    },
+    {
+      "name": "remove-legacy-tests",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "medium",
+      "expected_score": 3,
+      "deterministic_score": 3,
+      "predicted_score": 3,
+      "score_within_1": true,
+      "expected_categories": [
+        "test_removed"
+      ],
+      "predicted_categories": [
+        "test_removed"
+      ],
+      "category_tp": 1,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "replacement test coverage for the deleted tests"
+      ],
+      "suggested_test_areas": [
+        "replacement test coverage"
+      ],
+      "test_overlap": 0.6,
+      "latency_ms": 0.055
+    },
+    {
+      "name": "update-env-config",
+      "ai_status": "completed",
+      "valid_json": true,
+      "expected_band": "low",
+      "expected_score": 2,
+      "deterministic_score": 2,
+      "predicted_score": 2,
+      "score_within_1": true,
+      "expected_categories": [
+        "config_env"
+      ],
+      "predicted_categories": [
+        "config_env"
+      ],
+      "category_tp": 1,
+      "category_fp": 0,
+      "category_fn": 0,
+      "expected_test_areas": [
+        "configuration and env loading"
+      ],
+      "suggested_test_areas": [
+        "configuration loading"
+      ],
+      "test_overlap": 0.6667,
+      "latency_ms": 0.075
+    }
+  ]
+}
