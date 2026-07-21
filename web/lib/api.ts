@@ -1,9 +1,12 @@
-// Typed API client for the PRism backend.
-//
-// Milestone 1: only the health check is wired. Additional calls (list analyses,
-// fetch one analysis, eval metrics) are added as the backend endpoints land.
+// Typed API client for the PRism backend. Called from server components, so
+// fetches are uncached (no-store) to always show current data.
 
-import type { AnalysisSummary, HealthResponse } from "./types";
+import type {
+  AnalysisDetail,
+  AnalysisSummary,
+  EvalResult,
+  HealthResponse,
+} from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -22,7 +25,14 @@ export function getHealth(): Promise<HealthResponse> {
   return getJson<HealthResponse>("/health");
 }
 
-// Placeholder — returns [] until the backend endpoint exists (later milestone).
-export async function listAnalyses(): Promise<AnalysisSummary[]> {
-  return [];
+export function listAnalyses(): Promise<AnalysisSummary[]> {
+  return getJson<AnalysisSummary[]>("/api/analyses");
+}
+
+export function getAnalysis(id: string): Promise<AnalysisDetail> {
+  return getJson<AnalysisDetail>(`/api/analyses/${id}`);
+}
+
+export function getEvalLatest(): Promise<EvalResult> {
+  return getJson<EvalResult>("/api/eval/latest");
 }
