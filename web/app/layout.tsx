@@ -17,6 +17,7 @@ export default function RootLayout({
           <span className="brand">PRism</span>
           <Link href="/">Home</Link>
           <Link href="/dashboard">Dashboard</Link>
+          <Link href="/eval">Eval</Link>
         </nav>
         {children}
       </body>
