@@ -8,15 +8,15 @@ score, top concerns, suggested regression tests, likely regression areas), store
 every analysis, and surfaces similar historical PRs. See
 [`docs/technical-design.md`](docs/technical-design.md) for the full design.
 
-> **Status: Milestone 4 — evaluation harness.** On top of diff parsing,
-> rule-based risk, and schema-validated AI review, PRism now ships a reproducible
-> **evaluation harness**: `make eval` runs the full pipeline over every benchmark
-> fixture, computes quality metrics (valid-JSON rate, risk-score accuracy,
-> category precision/recall, test-suggestion overlap, latency), writes
-> `eval/results/latest.json`, and prints a summary table. It runs offline with the
-> **mock provider** by default (also the CI smoke test); set
-> `LLM_PROVIDER=anthropic` (+ `ANTHROPIC_API_KEY`) for the real Claude provider.
-> Persistence and retrieval land in later milestones.
+> **Status: Milestone 5 — persistence + regression retrieval.** Every analysis is
+> now stored in **Postgres** (SQLAlchemy 2.0 + Alembic), embedded, and used to
+> surface **similar prior PRs** in the same repository via cosine similarity.
+> `POST /api/analyze/local-fixture` returns a `persisted` flag, the `analysis_id`,
+> and a `similar` list. Persistence degrades gracefully — if the database is
+> unreachable the analysis is still returned (`persisted: false`, `similar: []`),
+> so the offline pipeline keeps working. Earlier milestones added diff parsing,
+> rule-based risk, schema-validated AI review (mock provider offline by default),
+> and a reproducible evaluation harness (`make eval`).
 
 ---
 
@@ -84,6 +84,7 @@ Run `make help` for the full list. The common ones:
 | `make typecheck` | Type-check backend (mypy) and frontend (tsc) |
 | `make eval`    | Run the evaluation harness (mock provider) + write `eval/results/latest.json` |
 | `make db-up` / `make db-down` | Start / stop the Postgres container |
+| `make migrate` | Apply database migrations (`alembic upgrade head`) |
 | `make fmt`     | Auto-format backend code |
 
 ---
@@ -229,6 +230,83 @@ regression — this is the CI eval gate.
 
 ---
 
+## Persistence + similar PRs (Milestone 5)
+
+Every analysis is stored so PRism can answer *"have we changed this area before?"*
+The pipeline persists the run, embeds it, and returns the most similar prior PRs
+in the same repository.
+
+### Run it with Postgres
+
+```bash
+make db-up        # start Postgres 16 + pgvector (docker-compose)
+make migrate      # alembic upgrade head — creates the schema
+make dev          # serve the API
+
+curl -s -X POST http://localhost:8000/api/analyze/local-fixture \
+  -H 'Content-Type: application/json' -d '{"name": "add-orders-table"}' | python3 -m json.tool
+# analyze a related PR next; it will list the first as "similar"
+curl -s -X POST http://localhost:8000/api/analyze/local-fixture \
+  -H 'Content-Type: application/json' -d '{"name": "add-orders-api-endpoint"}' | python3 -m json.tool
+```
+
+The response gains three fields:
+
+```jsonc
+{
+  "persisted": true,                        // false if the DB was unreachable
+  "analysis_id": "78c4541d-…",              // null when not persisted
+  "similar": [
+    {
+      "analysis_id": "…",
+      "repository": "anshbabar/PRism",
+      "number": 102,
+      "title": "Add orders table and Order model",
+      "risk_score": 4,
+      "risk_band": "high",
+      "similarity": 0.48,                    // cosine, 0..1
+      "summary": "…"
+    }
+  ]
+}
+```
+
+> **Offline-safe:** if Postgres isn't running, the endpoint still returns the full
+> analysis with `persisted: false` and `similar: []` (a warning is logged). The
+> parse → risk → review pipeline never depends on the database.
+
+### Schema
+
+Five tables (SQLAlchemy 2.0, portable across Postgres and the SQLite used in
+tests): `repositories`, `pull_requests`, `analyses`, `changed_files`,
+`embeddings`. A new push to the same PR head creates a **new `analyses` row**
+(re-analysis history), never a duplicate PR. `analyses.review_json` keeps the full
+LLM review verbatim and `analyses.risk_json` keeps the deterministic signals for
+explainability.
+
+### Embeddings & retrieval
+
+The embedding provider (`EMBEDDING_PROVIDER`, default `hash`) turns
+`title + summary + risk categories` into a fixed-dimension vector (`EMBED_DIM`).
+The default `hash` provider is offline, deterministic, and L2-normalized, so
+similar text lands close in cosine space — no API key needed. Retrieval scans
+embeddings for prior analyses in the same repository, ranks them by cosine
+similarity, and returns the top `SIMILAR_TOP_K`.
+
+> **Vectors are stored as JSON and compared in Python** (a linear scan), which
+> keeps the models dialect-portable and the tests hermetic (no external service).
+> The `pgvector` image is already wired in docker-compose; moving similarity into
+> a native `vector` column + ANN index is the documented production upgrade path.
+
+### Migrations
+
+Schema changes are managed with **Alembic** (`app/db/migrations/`). Apply with
+`make migrate`; the database URL comes from `DATABASE_URL` (never hardcoded in
+`alembic.ini`). Tests don't use Alembic — they build the schema directly on an
+in-memory SQLite database.
+
+---
+
 ## Layout
 
 ```
@@ -237,15 +315,18 @@ app/            FastAPI backend
   core/         config + structured logging
   diff/         unified-diff parser + rule-based risk heuristics
   ai/           LLM provider abstraction, review schema, prompts, fallback
+  db/           SQLAlchemy models, session factory, persistence, migrations/
+  retrieval/    embedding providers + similarity search
   eval/         evaluation metrics (formulas) + harness runner
   ingest/       local PR fixture loader
-tests/          Backend tests (pytest), incl. tests/eval/
+tests/          Backend tests (pytest), incl. tests/db/, tests/retrieval/, tests/eval/
 web/            Next.js + TypeScript frontend (app/, lib/)
 docs/           Technical design document
 eval/
   run_eval.py   evaluation harness CLI
   fixtures/     sample PR fixtures (sample_prs/)
   results/      latest.json (committed benchmark output)
+alembic.ini     Alembic configuration
 .github/        CI workflow
 docker-compose.yml   Postgres 16 + pgvector
 ```
