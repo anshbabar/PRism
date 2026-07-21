@@ -9,7 +9,7 @@ RUFF := $(VENV)/bin/ruff
 MYPY := $(VENV)/bin/mypy
 PYTEST := $(VENV)/bin/pytest
 
-.PHONY: help venv install web-install dev web test lint fmt typecheck eval db-up db-down migrate clean
+.PHONY: help venv install web-install dev web test lint fmt typecheck eval db-up db-down migrate seed clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -60,6 +60,9 @@ db-down: ## Stop Postgres
 
 migrate: ## Apply database migrations (alembic upgrade head)
 	$(PY) -m alembic upgrade head
+
+seed: ## Populate the database by analyzing every local fixture
+	$(PY) -m app.db.seed
 
 clean: ## Remove caches and the virtualenv
 	rm -rf $(VENV) .pytest_cache .ruff_cache .mypy_cache **/__pycache__
