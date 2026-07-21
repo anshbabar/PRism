@@ -8,14 +8,15 @@ score, top concerns, suggested regression tests, likely regression areas), store
 every analysis, and surfaces similar historical PRs. See
 [`docs/technical-design.md`](docs/technical-design.md) for the full design.
 
-> **Status: Milestone 6 — dashboard UI.** A clean Next.js dashboard reads the
-> backend over new read endpoints (`GET /api/analyses`, `/api/analyses/{id}`,
-> `/api/eval/latest`): a list of analyzed PRs, a per-PR detail page (risk score
-> card, AI summary, top concerns, suggested tests, changed files, and similar
-> historical PRs), and an evaluation-metrics page — all with loading and error
-> states. Earlier milestones added diff parsing, rule-based risk, schema-validated
-> AI review (mock provider offline by default), a reproducible evaluation harness
-> (`make eval`), and Postgres persistence + similar-PR retrieval (`make seed`).
+> **Status: Milestone 7 — GitHub App + webhooks.** PRism now runs as a real
+> GitHub App: it verifies webhook signatures, fetches a pull request's diff over
+> the GitHub API, analyzes it through the shared pipeline, persists the result,
+> and — when enabled — posts a single concise `COMMENT` review (dry-run by
+> default). Earlier milestones added diff parsing, rule-based risk,
+> schema-validated AI review (mock provider offline by default), a reproducible
+> evaluation harness (`make eval`), Postgres persistence + similar-PR retrieval
+> (`make seed`), and a Next.js dashboard (`GET /api/analyses`,
+> `/api/analyses/{id}`, `/api/eval/latest`).
 
 ---
 
@@ -341,14 +342,101 @@ in-memory SQLite database.
 
 ---
 
+## GitHub App + webhooks (Milestone 7)
+
+PRism can run as a GitHub App that reviews pull requests automatically. On a
+`pull_request` event it verifies the webhook signature, fetches the PR diff via
+the GitHub API, runs the same `parse → risk → review → embed` pipeline, persists
+the analysis, and — when enabled — posts one concise review.
+
+**Endpoint:** `POST /api/github/webhook`
+
+### Request handling
+
+| Situation | Response |
+|---|---|
+| Missing / invalid `X-Hub-Signature-256` | **401** |
+| `ping` event | **200** `{"msg": "pong"}` |
+| Non-`pull_request` event | **204** |
+| `pull_request` action ∉ {`opened`, `synchronize`, `reopened`} | **204** |
+| Handled action | **202** immediately; analysis runs in a background task |
+
+The signature is verified over the **raw** request body with HMAC-SHA256 and a
+constant-time compare *before* the body is parsed. The handler returns 202 fast
+so GitHub's delivery timeout is never at risk; the fetch → analyze → persist →
+post work happens off the request path. Each stage degrades gracefully — if the
+database is down the review can still post; if posting fails the analysis is
+still stored.
+
+### Dry-run vs. enabled
+
+`POST_REVIEWS=false` (default) is **dry-run**: PRism analyzes and stores the PR
+but never posts to GitHub — safe for trying it against real repositories. Set
+`POST_REVIEWS=true` to post. Posting is deliberately conservative:
+
+- **One review per PR** — every PRism review carries a hidden marker; if one
+  already exists, PRism skips posting.
+- The event is **`COMMENT`**, never `REQUEST_CHANGES`.
+- The body includes a summary, risk score, the **top 3** concerns, and suggested
+  tests — no line-level comments in the MVP (reliable line mapping is out of
+  scope). All PR content is untrusted; the review is schema-validated and the
+  risk score clamped to the deterministic heuristic before rendering.
+
+### Configuration
+
+```bash
+GITHUB_APP_ID=                         # numeric App ID
+GITHUB_APP_PRIVATE_KEY_PATH=/path/to/app-private-key.pem
+GITHUB_WEBHOOK_SECRET=...              # must match the App's webhook secret
+GITHUB_API_URL=https://api.github.com  # override for GitHub Enterprise
+POST_REVIEWS=false                     # true = actually post reviews
+```
+
+Authentication uses the standard GitHub App flow: PRism signs a short-lived
+RS256 **App JWT** with the private key and exchanges it for an **installation
+access token** (cached in-process), which authorizes the diff read and the
+review post.
+
+### Required GitHub App permissions
+
+| Permission | Access | Why |
+|---|---|---|
+| Pull requests | Read & write | Read metadata; write only to post the review (read-only suffices for dry-run) |
+| Contents | Read-only | Read the PR diff / files |
+| Metadata | Read-only | Mandatory baseline for every App |
+
+Subscribe the App to the **Pull request** webhook event and set its webhook
+secret to `GITHUB_WEBHOOK_SECRET`. No organization or admin scopes are needed.
+
+### Testing locally
+
+GitHub must reach your machine, so use a tunnel:
+
+```bash
+make dev   # backend on http://localhost:8000
+
+# in another terminal, expose it (pick one):
+npx smee-client --url https://smee.io/<channel> \
+  --target http://localhost:8000/api/github/webhook
+# or:  ngrok http 8000   → point the App's webhook URL at the ngrok URL + /api/github/webhook
+```
+
+Point the App's webhook URL at the tunnel, open a PR in a repo where the App is
+installed, and watch the analysis appear (dashboard or `GET /api/analyses`). The
+whole flow is covered by tests with the GitHub client mocked — no App and no
+network are needed to run `make test`.
+
+---
+
 ## Layout
 
 ```
 app/            FastAPI backend
-  api/          routes (health, analyze, analyses, eval)
+  api/          routes (health, analyze, analyses, eval, github webhook)
   core/         config + structured logging
   diff/         unified-diff parser + rule-based risk heuristics
   ai/           LLM provider abstraction, review schema, prompts, fallback
+  github/       GitHub App auth, REST client, webhook verify + review render
   db/           SQLAlchemy models, session, persistence, queries, seed, migrations/
   retrieval/    embedding providers + similarity search
   eval/         evaluation metrics (formulas) + harness runner
