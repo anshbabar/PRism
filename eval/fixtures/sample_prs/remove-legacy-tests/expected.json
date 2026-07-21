@@ -1,5 +1,8 @@
 {
   "expected_categories": ["test_removed"],
   "risk_band": "medium",
+  "expected_test_areas": [
+    "replacement test coverage for the deleted tests"
+  ],
   "notes": "A test file is deleted with no source change, so this is test-removal, not missing-tests."
 }

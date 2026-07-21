@@ -1,5 +1,8 @@
 {
   "expected_categories": ["config_env"],
   "risk_band": "low",
+  "expected_test_areas": [
+    "configuration and env loading"
+  ],
   "notes": "Env template + YAML config only; no application code, so no missing-tests signal."
 }
